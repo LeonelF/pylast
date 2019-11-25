@@ -12,20 +12,15 @@ A Python interface to [Last.fm](https://www.last.fm/) and other API-compatible w
 
 Use the pydoc utility for help on usage or see [tests/](tests/) for examples.
 
+***NOTE THAT THIS IS A FORK THAT ONLY FIXES THE PLAYS COUNT, THIS FORK ISN'T MAINTAINED IN ANY WAY***
+
 Installation
 ------------
 
 Install via pip:
 
-    pip install pylast
+    pip install -U git+https://github.com/LeonelF/pylast
 
-Install latest development version:
-
-    pip install -U git+https://github.com/pylast/pylast
-
-Or from requirements.txt:
-
-    -e git://github.com/pylast/pylast.git#egg=pylast
 
 Note:
 
