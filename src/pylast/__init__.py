@@ -919,7 +919,7 @@ class _Request:
 
             try:
                 conn.request(
-                                        url="https://" + host_name + host_subdir + url_parameters,
+                    url="https://" + host_name + host_subdir + url_parameters,
                     url="https://" + host_name + host_subdir,
                     method=method, body=data, headers=header
                 )
