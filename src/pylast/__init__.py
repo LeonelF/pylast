@@ -920,7 +920,7 @@ class _Request:
             try:
                 conn.request(
                     url="https://" + host_name + host_subdir + url_parameters,
-                    method=method, body=data, headers=header
+                    method=method, body=data, headers=headers
                 )
             except Exception as e:
                 raise NetworkError(self.network, e)
