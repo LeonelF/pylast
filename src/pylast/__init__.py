@@ -968,7 +968,7 @@ class _Request:
         try:
             doc = minidom.parseString(_string(response).replace("opensearch:", ""))
         except Exception as e:
-            raise MalformedResponseError(self.network, e)
+            raise MalformedResponseError(self.network, e + " >>" + response)
 
         e = doc.getElementsByTagName("lfm")[0]
         # logger.debug(doc.toprettyxml())
