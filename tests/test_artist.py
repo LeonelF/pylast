@@ -2,11 +2,11 @@
 """
 Integration (not unit) tests for pylast.py
 """
-import unittest
+import pytest
 
 import pylast
 
-from .test_pylast import TestPyLastWithLastFm
+from .test_pylast import WRITE_TEST, TestPyLastWithLastFm
 
 
 class TestPyLastArtist(TestPyLastWithLastFm):
@@ -18,13 +18,13 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         representation = repr(artist)
 
         # Assert
-        self.assertTrue(representation.startswith("pylast.Artist('Test Artist',"))
+        assert representation.startswith("pylast.Artist('Test Artist',")
 
     def test_artist_is_hashable(self):
         # Arrange
         test_artist = self.network.get_artist("Test Artist")
         artist = test_artist.get_similar(limit=2)[0].item
-        self.assertIsInstance(artist, pylast.Artist)
+        assert isinstance(artist, pylast.Artist)
 
         # Act/Assert
         self.helper_is_thing_hashable(artist)
@@ -37,8 +37,8 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         bio = artist.get_bio_published_date()
 
         # Assert
-        self.assertIsNotNone(bio)
-        self.assertGreaterEqual(len(bio), 1)
+        assert bio is not None
+        assert len(bio) >= 1
 
     def test_bio_content(self):
         # Arrange
@@ -48,8 +48,19 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         bio = artist.get_bio_content(language="en")
 
         # Assert
-        self.assertIsNotNone(bio)
-        self.assertGreaterEqual(len(bio), 1)
+        assert bio is not None
+        assert len(bio) >= 1
+
+    def test_bio_content_none(self):
+        # Arrange
+        # An artist with no biography, with "<content/>" in the API XML
+        artist = pylast.Artist("Mr Sizef + Unquote", self.network)
+
+        # Act
+        bio = artist.get_bio_content()
+
+        # Assert
+        assert bio is None
 
     def test_bio_summary(self):
         # Arrange
@@ -59,8 +70,8 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         bio = artist.get_bio_summary(language="en")
 
         # Assert
-        self.assertIsNotNone(bio)
-        self.assertGreaterEqual(len(bio), 1)
+        assert bio is not None
+        assert len(bio) >= 1
 
     def test_artist_top_tracks(self):
         # Arrange
@@ -94,7 +105,7 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         things = artist.get_top_albums(limit=limit)
 
         # Assert
-        self.assertEqual(len(things), 1)
+        assert len(things) == 1
 
     def test_artist_top_albums_limit_50(self):
         # Arrange
@@ -106,7 +117,7 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         things = artist.get_top_albums(limit=limit)
 
         # Assert
-        self.assertEqual(len(things), 50)
+        assert len(things) == 50
 
     def test_artist_top_albums_limit_100(self):
         # Arrange
@@ -118,7 +129,7 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         things = artist.get_top_albums(limit=limit)
 
         # Assert
-        self.assertEqual(len(things), 100)
+        assert len(things) == 100
 
     def test_artist_listener_count(self):
         # Arrange
@@ -128,9 +139,10 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         count = artist.get_listener_count()
 
         # Assert
-        self.assertIsInstance(count, int)
-        self.assertGreater(count, 0)
+        assert isinstance(count, int)
+        assert count > 0
 
+    @pytest.mark.skipif(not WRITE_TEST, reason="Only test once to avoid collisions")
     def test_tag_artist(self):
         # Arrange
         artist = self.network.get_artist("Test Artist")
@@ -141,14 +153,11 @@ class TestPyLastArtist(TestPyLastWithLastFm):
 
         # Assert
         tags = artist.get_tags()
-        self.assertGreater(len(tags), 0)
-        found = False
-        for tag in tags:
-            if tag.name == "testing":
-                found = True
-                break
-        self.assertTrue(found)
+        assert len(tags) > 0
+        found = any(tag.name == "testing" for tag in tags)
+        assert found
 
+    @pytest.mark.skipif(not WRITE_TEST, reason="Only test once to avoid collisions")
     def test_remove_tag_of_type_text(self):
         # Arrange
         tag = "testing"  # text
@@ -160,13 +169,10 @@ class TestPyLastArtist(TestPyLastWithLastFm):
 
         # Assert
         tags = artist.get_tags()
-        found = False
-        for tag in tags:
-            if tag.name == "testing":
-                found = True
-                break
-        self.assertFalse(found)
+        found = any(tag.name == "testing" for tag in tags)
+        assert not found
 
+    @pytest.mark.skipif(not WRITE_TEST, reason="Only test once to avoid collisions")
     def test_remove_tag_of_type_tag(self):
         # Arrange
         tag = pylast.Tag("testing", self.network)  # Tag
@@ -178,13 +184,10 @@ class TestPyLastArtist(TestPyLastWithLastFm):
 
         # Assert
         tags = artist.get_tags()
-        found = False
-        for tag in tags:
-            if tag.name == "testing":
-                found = True
-                break
-        self.assertFalse(found)
+        found = any(tag.name == "testing" for tag in tags)
+        assert not found
 
+    @pytest.mark.skipif(not WRITE_TEST, reason="Only test once to avoid collisions")
     def test_remove_tags(self):
         # Arrange
         tags = ["removetag1", "removetag2"]
@@ -198,16 +201,13 @@ class TestPyLastArtist(TestPyLastWithLastFm):
 
         # Assert
         tags_after = artist.get_tags()
-        self.assertEqual(len(tags_after), len(tags_before) - 2)
-        found1, found2 = False, False
-        for tag in tags_after:
-            if tag.name == "removetag1":
-                found1 = True
-            elif tag.name == "removetag2":
-                found2 = True
-        self.assertFalse(found1)
-        self.assertFalse(found2)
+        assert len(tags_after) == len(tags_before) - 2
+        found1 = any(tag.name == "removetag1" for tag in tags_after)
+        found2 = any(tag.name == "removetag2" for tag in tags_after)
+        assert not found1
+        assert not found2
 
+    @pytest.mark.skipif(not WRITE_TEST, reason="Only test once to avoid collisions")
     def test_set_tags(self):
         # Arrange
         tags = ["sometag1", "sometag2"]
@@ -221,16 +221,16 @@ class TestPyLastArtist(TestPyLastWithLastFm):
 
         # Assert
         tags_after = artist.get_tags()
-        self.assertNotEqual(tags_before, tags_after)
-        self.assertEqual(len(tags_after), 2)
+        assert tags_before != tags_after
+        assert len(tags_after) == 2
         found1, found2 = False, False
         for tag in tags_after:
             if tag.name == "settag1":
                 found1 = True
             elif tag.name == "settag2":
                 found2 = True
-        self.assertTrue(found1)
-        self.assertTrue(found2)
+        assert found1
+        assert found2
 
     def test_artists(self):
         # Arrange
@@ -240,20 +240,19 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         # Act
         url = artist1.get_url()
         mbid = artist1.get_mbid()
-        image = artist1.get_cover_image()
+
         playcount = artist1.get_playcount()
         streamable = artist1.is_streamable()
         name = artist1.get_name(properly_capitalized=False)
         name_cap = artist1.get_name(properly_capitalized=True)
 
         # Assert
-        self.assertIn("https", image)
-        self.assertGreater(playcount, 1)
-        self.assertNotEqual(artist1, artist2)
-        self.assertEqual(name.lower(), name_cap.lower())
-        self.assertEqual(url, "https://www.last.fm/music/radiohead")
-        self.assertEqual(mbid, "a74b1b7f-71a5-4011-9441-d0b5e4122711")
-        self.assertIsInstance(streamable, bool)
+        assert playcount > 1
+        assert artist1 != artist2
+        assert name.lower() == name_cap.lower()
+        assert url == "https://www.last.fm/music/radiohead"
+        assert mbid == "a74b1b7f-71a5-4011-9441-d0b5e4122711"
+        assert isinstance(streamable, bool)
 
     def test_artist_eq_none_is_false(self):
         # Arrange
@@ -261,7 +260,7 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         artist2 = pylast.Artist("Test Artist", self.network)
 
         # Act / Assert
-        self.assertNotEqual(artist1, artist2)
+        assert artist1 != artist2
 
     def test_artist_ne_none_is_true(self):
         # Arrange
@@ -269,7 +268,7 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         artist2 = pylast.Artist("Test Artist", self.network)
 
         # Act / Assert
-        self.assertNotEqual(artist1, artist2)
+        assert artist1 != artist2
 
     def test_artist_get_correction(self):
         # Arrange
@@ -279,8 +278,9 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         corrected_artist_name = artist.get_correction()
 
         # Assert
-        self.assertEqual(corrected_artist_name, "Guns N' Roses")
+        assert corrected_artist_name == "Guns N' Roses"
 
+    @pytest.mark.xfail
     def test_get_userplaycount(self):
         # Arrange
         artist = pylast.Artist("John Lennon", self.network, username=self.username)
@@ -289,8 +289,4 @@ class TestPyLastArtist(TestPyLastWithLastFm):
         playcount = artist.get_userplaycount()
 
         # Assert
-        self.assertGreaterEqual(playcount, 0)
-
-
-if __name__ == "__main__":
-    unittest.main(failfast=True)
+        assert playcount >= 0  # whilst xfail: # pragma: no cover

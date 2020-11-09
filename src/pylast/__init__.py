@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 #
 # pylast -
 #     A Python interface to Last.fm and Libre.fm
 #
 # Copyright 2008-2010 Amr Hassan
-# Copyright 2013-2019 hugovk
+# Copyright 2013-2020 hugovk
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,51 +25,20 @@ import html.entities
 import logging
 import shelve
 import ssl
-import sys
 import tempfile
 import time
-import warnings
 import xml.dom
 from http.client import HTTPSConnection
+from urllib.parse import quote_plus
 from xml.dom import Node, minidom
 
-from . import version
+import pkg_resources
 
 __author__ = "Amr Hassan, hugovk, Mice Pápai"
-__copyright__ = (
-    "Copyright (C) 2008-2010 Amr Hassan, 2013-2019 hugovk, " "2017 Mice Pápai"
-)
+__copyright__ = "Copyright (C) 2008-2010 Amr Hassan, 2013-2020 hugovk, 2017 Mice Pápai"
 __license__ = "apache2"
 __email__ = "amr.hassan@gmail.com"
-__version__ = version.__version__
-
-if sys.version_info < (3,):
-    raise ImportError(
-        """pylast 3.0 and above are no longer compatible with Python 2.
-
-This is pylast {} and you are using Python {}.
-Make sure you have pip >= 9.0 and setuptools >= 24.2 and retry:
-
- $ pip install --upgrade pip setuptools
-
-Other choices:
-
-- Upgrade to Python 3.
-
-- Install an older version of pylast:
-
-$ pip install 'pylast<3.0'
-
-For more information:
-
-https://github.com/pylast/pylast/issues/265
-""".format(
-            version, ".".join([str(v) for v in sys.version_info[:3]])
-        )
-    )
-else:
-    # Keep importable on Python 2 for a while to show ImportError
-    from urllib.parse import quote_plus as url_quote_plus
+__version__ = pkg_resources.get_distribution(__name__).version
 
 
 # 1 : This error does not exist
@@ -80,9 +48,7 @@ STATUS_AUTH_FAILED = 4
 STATUS_INVALID_FORMAT = 5
 STATUS_INVALID_PARAMS = 6
 STATUS_INVALID_RESOURCE = 7
-# DeprecationWarning: STATUS_TOKEN_ERROR is deprecated and will be
-# removed in a future version. Use STATUS_OPERATION_FAILED instead.
-STATUS_OPERATION_FAILED = STATUS_TOKEN_ERROR = 8
+STATUS_OPERATION_FAILED = 8
 STATUS_INVALID_SK = 9
 STATUS_INVALID_API_KEY = 10
 STATUS_OFFLINE = 11
@@ -177,29 +143,29 @@ class _Network:
         token=None,
     ):
         """
-            name: the name of the network
-            homepage: the homepage URL
-            ws_server: the URL of the webservices server
-            api_key: a provided API_KEY
-            api_secret: a provided API_SECRET
-            session_key: a generated session_key or None
-            username: a username of a valid user
-            password_hash: the output of pylast.md5(password) where password is
-                the user's password
-            domain_names: a dict mapping each DOMAIN_* value to a string domain
-                name
-            urls: a dict mapping types to URLs
-            token: an authentication token to retrieve a session
+        name: the name of the network
+        homepage: the homepage URL
+        ws_server: the URL of the webservices server
+        api_key: a provided API_KEY
+        api_secret: a provided API_SECRET
+        session_key: a generated session_key or None
+        username: a username of a valid user
+        password_hash: the output of pylast.md5(password) where password is
+            the user's password
+        domain_names: a dict mapping each DOMAIN_* value to a string domain
+            name
+        urls: a dict mapping types to URLs
+        token: an authentication token to retrieve a session
 
-            if username and password_hash were provided and not session_key,
-            session_key will be generated automatically when needed.
+        if username and password_hash were provided and not session_key,
+        session_key will be generated automatically when needed.
 
-            Either a valid session_key or a combination of username and
-            password_hash must be present for scrobbling.
+        Either a valid session_key or a combination of username and
+        password_hash must be present for scrobbling.
 
-            You should use a preconfigured network object through a
-            get_*_network(...) method instead of creating an object
-            of this class, unless you know what you're doing.
+        You should use a preconfigured network object through a
+        get_*_network(...) method instead of creating an object
+        of this class, unless you know what you're doing.
         """
 
         self.name = name
@@ -240,56 +206,56 @@ class _Network:
 
     def get_artist(self, artist_name):
         """
-            Return an Artist object
+        Return an Artist object
         """
 
         return Artist(artist_name, self)
 
     def get_track(self, artist, title):
         """
-            Return a Track object
+        Return a Track object
         """
 
         return Track(artist, title, self)
 
     def get_album(self, artist, title):
         """
-            Return an Album object
+        Return an Album object
         """
 
         return Album(artist, title, self)
 
     def get_authenticated_user(self):
         """
-            Returns the authenticated user
+        Returns the authenticated user
         """
 
         return AuthenticatedUser(self)
 
     def get_country(self, country_name):
         """
-            Returns a country object
+        Returns a country object
         """
 
         return Country(country_name, self)
 
     def get_user(self, username):
         """
-            Returns a user object
+        Returns a user object
         """
 
         return User(username, self)
 
     def get_tag(self, name):
         """
-            Returns a tag object
+        Returns a tag object
         """
 
         return Tag(name, self)
 
     def _get_language_domain(self, domain_language):
         """
-            Returns the mapped domain name of the network to a DOMAIN_* value
+        Returns the mapped domain name of the network to a DOMAIN_* value
         """
 
         if domain_language in self.domain_names:
@@ -302,13 +268,13 @@ class _Network:
 
     def _get_ws_auth(self):
         """
-            Returns an (API_KEY, API_SECRET, SESSION_KEY) tuple.
+        Returns an (API_KEY, API_SECRET, SESSION_KEY) tuple.
         """
         return self.api_key, self.api_secret, self.session_key
 
     def _delay_call(self):
         """
-            Makes sure that web service calls are at least 0.2 seconds apart.
+        Makes sure that web service calls are at least 0.2 seconds apart.
         """
         now = time.time()
 
@@ -896,7 +862,7 @@ class _Request:
         keys = list(self.params.keys())
         keys.sort()
 
-        cache_key = str()
+        cache_key = ""
 
         for key in keys:
             if key != "api_sig" and key != "api_key" and key != "sk":
@@ -926,7 +892,7 @@ class _Request:
 
         data = []
         for name in self.params.keys():
-            data.append("=".join((name, url_quote_plus(_string(self.params[name])))))
+            data.append("=".join((name, quote_plus(_string(self.params[name])))))
         data = "&".join(data)
 
         if "api_sig" in self.params.keys():
@@ -939,7 +905,7 @@ class _Request:
         headers = {
             "Content-type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "User-Agent": "pylast" + "/" + __version__,
+            "User-Agent": "pylast/" + __version__,
         }
 
         (host_name, host_subdir) = self.network.ws_server
@@ -953,7 +919,8 @@ class _Request:
 
             try:
                 conn.request(
-                    url="https://" + host_name + host_subdir + url_parameters,
+                                        url="https://" + host_name + host_subdir + url_parameters,
+                    url="https://" + host_name + host_subdir,
                     method=method, body=data, headers=header
                 )
             except Exception as e:
@@ -971,7 +938,15 @@ class _Request:
                 raise NetworkError(self.network, e)
 
         try:
-            response_text = _unicode(conn.getresponse().read())
+            response = conn.getresponse()
+            if response.status in [500, 502, 503, 504]:
+                raise WSError(
+                    self.network,
+                    response.status,
+                    "Connection to the API failed with HTTP code "
+                    + str(response.status),
+                )
+            response_text = _unicode(response.read())
         except Exception as e:
             raise MalformedResponseError(self.network, e)
 
@@ -1173,7 +1148,12 @@ class _BaseObject:
     def _extract_cdata_from_request(self, method_name, tag_name, params):
         doc = self._request(method_name, True, params)
 
-        return doc.getElementsByTagName(tag_name)[0].firstChild.wholeText.strip()
+        first_child = doc.getElementsByTagName(tag_name)[0].firstChild
+
+        if first_child is None:
+            return None
+
+        return first_child.wholeText.strip()
 
     def _get_things(self, method, thing, thing_type, params=None, cacheable=True):
         """Returns a list of the most played thing_types by this thing."""
@@ -1259,7 +1239,7 @@ class _Chartable:
         """
         Returns the weekly artist charts for the week starting from the
         from_date value to the to_date value.
-        Only for Tag or User.
+        Only for User.
         """
         return self.get_weekly_charts("artist", from_date, to_date)
 
@@ -1434,31 +1414,31 @@ class WSError(Exception):
 
     def get_id(self):
         """Returns the exception ID, from one of the following:
-            STATUS_INVALID_SERVICE = 2
-            STATUS_INVALID_METHOD = 3
-            STATUS_AUTH_FAILED = 4
-            STATUS_INVALID_FORMAT = 5
-            STATUS_INVALID_PARAMS = 6
-            STATUS_INVALID_RESOURCE = 7
-            STATUS_OPERATION_FAILED = 8
-            STATUS_INVALID_SK = 9
-            STATUS_INVALID_API_KEY = 10
-            STATUS_OFFLINE = 11
-            STATUS_SUBSCRIBERS_ONLY = 12
-            STATUS_TOKEN_UNAUTHORIZED = 14
-            STATUS_TOKEN_EXPIRED = 15
-            STATUS_TEMPORARILY_UNAVAILABLE = 16
-            STATUS_LOGIN_REQUIRED = 17
-            STATUS_TRIAL_EXPIRED = 18
-            STATUS_NOT_ENOUGH_CONTENT = 20
-            STATUS_NOT_ENOUGH_MEMBERS  = 21
-            STATUS_NOT_ENOUGH_FANS = 22
-            STATUS_NOT_ENOUGH_NEIGHBOURS = 23
-            STATUS_NO_PEAK_RADIO = 24
-            STATUS_RADIO_NOT_FOUND = 25
-            STATUS_API_KEY_SUSPENDED = 26
-            STATUS_DEPRECATED = 27
-            STATUS_RATE_LIMIT_EXCEEDED = 29
+        STATUS_INVALID_SERVICE = 2
+        STATUS_INVALID_METHOD = 3
+        STATUS_AUTH_FAILED = 4
+        STATUS_INVALID_FORMAT = 5
+        STATUS_INVALID_PARAMS = 6
+        STATUS_INVALID_RESOURCE = 7
+        STATUS_OPERATION_FAILED = 8
+        STATUS_INVALID_SK = 9
+        STATUS_INVALID_API_KEY = 10
+        STATUS_OFFLINE = 11
+        STATUS_SUBSCRIBERS_ONLY = 12
+        STATUS_TOKEN_UNAUTHORIZED = 14
+        STATUS_TOKEN_EXPIRED = 15
+        STATUS_TEMPORARILY_UNAVAILABLE = 16
+        STATUS_LOGIN_REQUIRED = 17
+        STATUS_TRIAL_EXPIRED = 18
+        STATUS_NOT_ENOUGH_CONTENT = 20
+        STATUS_NOT_ENOUGH_MEMBERS  = 21
+        STATUS_NOT_ENOUGH_FANS = 22
+        STATUS_NOT_ENOUGH_NEIGHBOURS = 23
+        STATUS_NO_PEAK_RADIO = 24
+        STATUS_RADIO_NOT_FOUND = 25
+        STATUS_API_KEY_SUSPENDED = 26
+        STATUS_DEPRECATED = 27
+        STATUS_RATE_LIMIT_EXCEEDED = 29
         """
 
         return self.status
@@ -1740,23 +1720,6 @@ class Artist(_BaseObject, _Taggable):
         """Returns the corrected artist name."""
 
         return _extract(self._request(self.ws_prefix + ".getCorrection"), "name")
-
-    def get_cover_image(self, size=SIZE_EXTRA_LARGE):
-        """
-        Returns a URI to the cover image
-        size can be one of:
-            SIZE_MEGA
-            SIZE_EXTRA_LARGE
-            SIZE_LARGE
-            SIZE_MEDIUM
-            SIZE_SMALL
-        """
-
-        if "image" not in self.info:
-            self.info["image"] = _extract_all(
-                self._request(self.ws_prefix + ".getInfo", cacheable=True), "image"
-            )
-        return self.info["image"][size]
 
     def get_playcount(self):
         """Returns the number of plays on the network."""
@@ -2154,6 +2117,8 @@ class Track(_Opus):
 
     def get_album(self):
         """Returns the album object of this track."""
+        if "album" in self.info and self.info["album"] is not None:
+            return Album(self.artist, self.info["album"], self.network)
 
         doc = self._request(self.ws_prefix + ".getInfo", True)
 
@@ -2266,40 +2231,6 @@ class User(_BaseObject, _Chartable):
 
         return self.name
 
-    def get_artist_tracks(self, artist, cacheable=False):
-        """
-        Deprecated by Last.fm.
-        Get a list of tracks by a given artist scrobbled by this user,
-        including scrobble time.
-        """
-
-        warnings.warn(
-            "User.get_artist_tracks is deprecated and will be removed in a future "
-            "version. User.get_track_scrobbles is a partial replacement. "
-            "See https://github.com/pylast/pylast/issues/298",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        params = self._get_params()
-        params["artist"] = artist
-
-        seq = []
-        for track in _collect_nodes(
-            None, self, self.ws_prefix + ".getArtistTracks", cacheable, params
-        ):
-            title = _extract(track, "name")
-            artist = _extract(track, "artist")
-            date = _extract(track, "date")
-            album = _extract(track, "album")
-            timestamp = track.getElementsByTagName("date")[0].getAttribute("uts")
-
-            seq.append(
-                PlayedTrack(Track(artist, title, self.network), album, date, timestamp)
-            )
-
-        return seq
-
     def get_friends(self, limit=50, cacheable=False):
         """Returns a list of the user's friends. """
 
@@ -2364,8 +2295,9 @@ class User(_BaseObject, _Chartable):
 
         artist = _extract(e, "artist")
         title = _extract(e, "name")
+        info = {"album": _extract(e, "album"), "image": _extract_all(e, "image")}
 
-        return Track(artist, title, self.network, self.name)
+        return Track(artist, title, self.network, self.name, info=info)
 
     def get_recent_tracks(self, limit=10, cacheable=True, time_from=None, time_to=None):
         """
@@ -2389,7 +2321,7 @@ class User(_BaseObject, _Chartable):
 
         params = self._get_params()
         if limit:
-            params["limit"] = limit
+            params["limit"] = limit + 1  # in case we remove the now playing track
         if time_from:
             params["from"] = time_from
         if time_to:
@@ -2397,7 +2329,11 @@ class User(_BaseObject, _Chartable):
 
         seq = []
         for track in _collect_nodes(
-            limit, self, self.ws_prefix + ".getRecentTracks", cacheable, params
+            limit + 1 if limit else None,
+            self,
+            self.ws_prefix + ".getRecentTracks",
+            cacheable,
+            params,
         ):
 
             if track.hasAttribute("nowplaying"):
@@ -2413,6 +2349,9 @@ class User(_BaseObject, _Chartable):
                 PlayedTrack(Track(artist, title, self.network), album, date, timestamp)
             )
 
+        if limit:
+            # Slice, in case we didn't remove a now playing track
+            seq = seq[:limit]
         return seq
 
     def get_country(self):
@@ -2904,8 +2843,9 @@ def _extract_top_albums(doc, network):
         name = _extract(node, "name")
         artist = _extract(node, "name", 1)
         playcount = _extract(node, "playcount")
+        info = {"image": _extract_all(node, "image")}
 
-        seq.append(TopItem(Album(artist, name, network), playcount))
+        seq.append(TopItem(Album(artist, name, network, info=info), playcount))
 
     return seq
 
@@ -2938,13 +2878,13 @@ def _extract_tracks(doc, network):
 def _url_safe(text):
     """Does all kinds of tricks on a text to make it safe to use in a URL."""
 
-    return url_quote_plus(url_quote_plus(_string(text))).lower()
+    return quote_plus(quote_plus(_string(text))).lower()
 
 
 def _number(string):
     """
-        Extracts an int from a string.
-        Returns a 0 if None or an empty string was passed.
+    Extracts an int from a string.
+    Returns a 0 if None or an empty string was passed.
     """
 
     if not string:
